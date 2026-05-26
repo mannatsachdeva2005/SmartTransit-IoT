@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>Smart Fleet Tracking</title>
+
+    <meta charset="utf-8" />
+
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+
+        // =====================================================
+        // Create Map
+        // =====================================================
+
+        const map = L.map('map').setView(
+            [28.6139, 77.2090],
+            12
+        );
+
+        // =====================================================
+        // OpenStreetMap Tiles
+        // =====================================================
+
+        L.tileLayer(
+            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            {
+                attribution:
+                    '&copy; OpenStreetMap contributors'
+            }
+        ).addTo(map);
+
+        // =====================================================
+        // Store Markers
+        // =====================================================
+
+        const markers = {};
+
+        // =====================================================
+        // Fetch Bus Locations
+        // =====================================================
+
+        async function fetchBusLocations() {
+
+            try {
+
+                const response =
+                    await fetch(
+                        'http://127.0.0.1:8000/locations'
+                    );
+
+                const buses =
+                    await response.json();
+
+                console.log(buses);
+
+                buses.forEach(bus => {
+
+                    const lat = bus.latitude;
+                    const lon = bus.longitude;
+                    const busId = bus.bus_id;
+
+                    // =========================================
+                    // Update Existing Marker
+                    // =========================================
+
+                    if (markers[busId]) {
+
+                        markers[busId]
+                            .setLatLng([lat, lon]);
+
+                    }
+
+                    // =========================================
+                    // Create New Marker
+                    // =========================================
+
+                    else {
+
+                        const marker = L.marker(
+                            [lat, lon]
+                        ).addTo(map);
+
+                        marker.bindPopup(`
+                            <b>${busId}</b><br>
+                            Speed: ${bus.speed} km/h<br>
+                            Passengers: ${bus.passengers}<br>
+                            Status: ${bus.status}
+                        `);
+
+                        markers[busId] = marker;
+                    }
+
+                });
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Map Error:",
+                    error
+                );
+
+            }
+
+        }
+
+        // =====================================================
+        // Initial Load
+        // =====================================================
+
+        fetchBusLocations();
+
+        // =====================================================
+        // Refresh Every 5 Seconds
+        // =====================================================
+
+        setInterval(
+            fetchBusLocations,
+            5000
+        );
+
+    </script>
+
+</body>
+
+</html>

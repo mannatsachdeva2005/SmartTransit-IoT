@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>Smart Fleet Dashboard</title>
+
+    <meta charset="utf-8" />
+
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <!-- Leaflet -->
+    <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+        }
+
+        /* ===================================== */
+        /* Header */
+        /* ===================================== */
+
+        .header {
+
+            background: #1f2937;
+
+            color: white;
+
+            padding: 20px;
+
+            text-align: center;
+
+            font-size: 28px;
+
+            font-weight: bold;
+        }
+
+        /* ===================================== */
+        /* Dashboard Cards */
+        /* ===================================== */
+
+        .cards {
+
+            display: flex;
+
+            gap: 20px;
+
+            padding: 20px;
+
+            flex-wrap: wrap;
+        }
+
+        .card {
+
+            background: white;
+
+            flex: 1;
+
+            min-width: 220px;
+
+            padding: 20px;
+
+            border-radius: 12px;
+
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+
+            margin: 0;
+
+            color: #555;
+        }
+
+        .card p {
+
+            font-size: 30px;
+
+            margin-top: 15px;
+
+            font-weight: bold;
+
+            color: #111827;
+        }
+
+        /* ===================================== */
+        /* Main Layout */
+        /* ===================================== */
+
+        .main {
+
+            display: flex;
+
+            gap: 20px;
+
+            padding: 20px;
+        }
+
+        /* ===================================== */
+        /* Map */
+        /* ===================================== */
+
+        #map {
+
+            flex: 2;
+
+            height: 650px;
+
+            border-radius: 12px;
+
+            overflow: hidden;
+        }
+
+        /* ===================================== */
+        /* Alerts Panel */
+        /* ===================================== */
+
+        .alerts {
+
+            flex: 1;
+
+            background: white;
+
+            padding: 20px;
+
+            border-radius: 12px;
+
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+
+            height: 650px;
+
+            overflow-y: auto;
+        }
+
+        .alerts h2 {
+
+            margin-top: 0;
+        }
+
+        .alert {
+
+            padding: 12px;
+
+            margin-bottom: 12px;
+
+            border-radius: 8px;
+
+            background: #fee2e2;
+
+            border-left: 5px solid red;
+        }
+
+        /* ===================================== */
+        /* Bus Table */
+        /* ===================================== */
+
+        .table-container {
+
+            padding: 20px;
+        }
+
+        table {
+
+            width: 100%;
+
+            border-collapse: collapse;
+
+            background: white;
+
+            border-radius: 12px;
+
+            overflow: hidden;
+        }
+
+        th {
+
+            background: #1f2937;
+
+            color: white;
+
+            padding: 15px;
+        }
+
+        td {
+
+            padding: 12px;
+
+            border-bottom: 1px solid #ddd;
+
+            text-align: center;
+        }
+
+        tr:hover {
+
+            background: #f3f4f6;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <!-- ===================================== -->
+    <!-- Header -->
+    <!-- ===================================== -->
+
+    <div class="header">
+
+        Smart Fleet Management Dashboard
+
+    </div>
+
+    <!-- ===================================== -->
+    <!-- Cards -->
+    <!-- ===================================== -->
+
+    <div class="cards">
+
+        <div class="card">
+            <h2>Total Buses</h2>
+            <p id="totalBuses">0</p>
+        </div>
+
+        <div class="card">
+            <h2>Average Speed</h2>
+            <p id="averageSpeed">0</p>
+        </div>
+
+        <div class="card">
+            <h2>Total Alerts</h2>
+            <p id="totalAlerts">0</p>
+        </div>
+
+        <div class="card">
+            <h2>Active Buses</h2>
+            <p id="activeBuses">0</p>
+        </div>
+
+    </div>
+
+    <!-- ===================================== -->
+    <!-- Main Section -->
+    <!-- ===================================== -->
+
+    <div class="main">
+
+        <!-- Map -->
+
+        <div id="map"></div>
+
+        <!-- Alerts -->
+
+        <div class="alerts">
+
+            <h2>Live Alerts</h2>
+
+            <div id="alertsList"></div>
+
+        </div>
+
+    </div>
+
+    <!-- ===================================== -->
+    <!-- Bus Table -->
+    <!-- ===================================== -->
+
+    <div class="table-container">
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>Bus ID</th>
+
+                    <th>Latitude</th>
+
+                    <th>Longitude</th>
+
+                    <th>Speed</th>
+
+                    <th>Passengers</th>
+
+                    <th>Status</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody id="busTableBody">
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    <script>
+
+        // =====================================
+        // Create Map
+        // =====================================
+
+        const map = L.map('map').setView(
+            [28.6139, 77.2090],
+            11
+        );
+
+        // =====================================
+        // OpenStreetMap Tiles
+        // =====================================
+
+        L.tileLayer(
+            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            {
+                attribution:
+                    '&copy; OpenStreetMap contributors'
+            }
+        ).addTo(map);
+
+        // =====================================
+        // Markers
+        // =====================================
+
+        const markers = {};
+
+        // =====================================
+        // Load Bus Locations
+        // =====================================
+
+        async function loadBusLocations() {
+
+            try {
+
+                const response =
+                    await fetch(
+                        'http://127.0.0.1:8000/locations'
+                    );
+
+                const buses =
+                    await response.json();
+
+                // =============================
+                // Update Cards
+                // =============================
+
+                document.getElementById(
+                    'totalBuses'
+                ).innerText = buses.length;
+
+                document.getElementById(
+                    'activeBuses'
+                ).innerText = buses.length;
+
+                // =============================
+                // Average Speed
+                // =============================
+
+                let totalSpeed = 0;
+
+                buses.forEach(bus => {
+
+                    totalSpeed += bus.speed;
+
+                });
+
+                let avg =
+                    totalSpeed / buses.length;
+
+                document.getElementById(
+                    'averageSpeed'
+                ).innerText =
+                    avg.toFixed(1) + " km/h";
+
+                // =============================
+                // Update Table
+                // =============================
+
+                const tableBody =
+                    document.getElementById(
+                        'busTableBody'
+                    );
+
+                tableBody.innerHTML = "";
+
+                buses.forEach(bus => {
+
+                    // =========================
+                    // Map Markers
+                    // =========================
+
+                    const lat = bus.latitude;
+
+                    const lon = bus.longitude;
+
+                    const busId = bus.bus_id;
+
+                    if (markers[busId]) {
+
+                        markers[busId]
+                            .setLatLng([lat, lon]);
+
+                    }
+
+                    else {
+
+                        const marker =
+                            L.marker([lat, lon])
+                            .addTo(map);
+
+                        marker.bindPopup(`
+                            <b>${bus.bus_id}</b><br>
+                            Speed: ${bus.speed} km/h<br>
+                            Passengers: ${bus.passengers}
+                        `);
+
+                        markers[busId] = marker;
+                    }
+
+                    // =========================
+                    // Table Row
+                    // =========================
+
+                    const row = `
+                        <tr>
+                            <td>${bus.bus_id}</td>
+                            <td>${bus.latitude}</td>
+                            <td>${bus.longitude}</td>
+                            <td>${bus.speed} km/h</td>
+                            <td>${bus.passengers}</td>
+                            <td>${bus.status}</td>
+                        </tr>
+                    `;
+
+                    tableBody.innerHTML += row;
+
+                });
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Dashboard Error:",
+                    error
+                );
+
+            }
+
+        }
+
+        // =====================================
+        // Load Alerts
+        // =====================================
+
+        async function loadAlerts() {
+
+            try {
+
+                const response =
+                    await fetch(
+                        'http://127.0.0.1:8000/alerts'
+                    );
+
+                const alerts =
+                    await response.json();
+
+                document.getElementById(
+                    'totalAlerts'
+                ).innerText = alerts.length;
+
+                const alertsList =
+                    document.getElementById(
+                        'alertsList'
+                    );
+
+                alertsList.innerHTML = "";
+
+                alerts.reverse().forEach(alert => {
+
+                    const div =
+                        document.createElement("div");
+
+                    div.className = "alert";
+
+                    div.innerHTML = `
+                        <b>${alert.type}</b><br>
+                        Bus: ${alert.bus_id}
+                    `;
+
+                    alertsList.appendChild(div);
+
+                });
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Alert Error:",
+                    error
+                );
+
+            }
+
+        }
+
+        // =====================================
+        // Initial Load
+        // =====================================
+
+        loadBusLocations();
+
+        loadAlerts();
+
+        // =====================================
+        // Auto Refresh
+        // =====================================
+
+        setInterval(loadBusLocations, 5000);
+
+        setInterval(loadAlerts, 5000);
+
+    </script>
+
+</body>
+
+</html>
