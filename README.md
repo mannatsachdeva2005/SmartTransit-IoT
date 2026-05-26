@@ -16,3 +16,17 @@ The system includes:
 - Real-time dashboard visualization
 
 This project demonstrates practical IoT backend engineering concepts used in real-world fleet management and smart transportation systems.
+## Features
+
+- Real-time GPS tracking
+- MQTT communication
+- Multiple vehicle simulation
+- MongoDB telemetry storage
+- REST APIs using FastAPI
+- WebSocket live updates
+- Live dashboard visualization
+- Overspeed alerts
+- Geofencing support
+- Device telemetry analytics
+- Fleet monitoring system
+- IoT Devices → MQTT Broker → FastAPI Backend → MongoDB → REST APIs/WebSockets → Live Dashboard
